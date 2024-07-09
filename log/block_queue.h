@@ -50,6 +50,81 @@ class block_queue{
         m_mutex.unlock();
         return false;
     }
+    //那么肯定还有判断队列是否为空的函数
+    bool empty(){
+        m_mutex.lock();
+        if(m_size == 0){
+            m_mutex.unlock();
+            return true;
+        }
+        m_mutex.unlock();
+        return false;
+    }
+
+    //寻找返回队首的元素
+    bool front(T &value){ //引用调用
+        m_mutex.lock();
+        if(m_size == 0){
+            m_mutex.unlock();
+            return false;
+        }
+        value = m_array[m_front];
+        m_mutex.unlock();
+        return true;
+    }
+    //返回队尾的元素
+    bool back(T &value){
+        m_mutex.lock();
+        if(m_size == 0){
+            m_mutex.unlock();
+            return false;
+        }
+        value = m_array[m_back];
+        m_mutex.unlock();
+        return true;
+    }
+
+    int size(){
+        int tmp  = 0;
+        m_mutex.lock();
+        tmp = m_size;
+        m_mutex.unlock();
+        return tmp;
+    }
+
+    int max_size(){
+        int tmp = 0;
+        m_mutex.lock();
+        tmp = m_max_size;
+        m_mutex.unlock();
+        return tmp;
+    }
+    bool push(const T &item){
+        m_mutex.lock();
+        if(m_size >= m_max_size){
+            m_cond.broadcast();
+            m_mutex.unlock();
+            return false;
+        }
+        m_back = (m_back + 1) % m_max_size;
+        m_array[m_back] = item;
+
+        m_size++;
+
+        m_cond.broadcast();
+        m_mutex.unlock();
+        return true;
+    }
+
+    bool pop(T &item){
+        m_mutex.lock();
+        while(m_size <= 0){
+            if(!m_cond.wait(m_mutex.get())){
+                m_mutex.unlock();
+                return false;
+            }
+        }
+    }
 
     private:
         locker m_mutex;
